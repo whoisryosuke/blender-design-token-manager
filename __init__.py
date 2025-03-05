@@ -68,21 +68,22 @@ TOKEN_TYPES = {
 }
 
 class DesignTokenCollectionItem(PropertyGroup):
-    name = StringProperty(
+    name: StringProperty(
         name="Name",
         description="The name of the token you want to create",
     )
-    value = FloatVectorProperty(
+    value: FloatVectorProperty(
         name="Value",
         description="The value of the token you want to create",
-        subtype='COLOR'
+        subtype='COLOR',
+        min=0.0,
+        max=1.0,
     )
-    token_type = EnumProperty(
+    token_type: StringProperty(
         name = "Type",
         description = "The type of token (color, typography, etc)",
-        items=new_token_type_items
         )
-    number = IntProperty(default=42)
+    number: IntProperty(default=42)
 
 
 class GI_SceneProperties(PropertyGroup):
@@ -240,7 +241,6 @@ class GI_create_new_token(bpy.types.Operator):
 
     def execute(self, context: bpy.types.Context):
         props = context.scene.token_props
-        tokens = props.tokens
         token_map = props.token_map
 
         # New token data
@@ -249,9 +249,14 @@ class GI_create_new_token(bpy.types.Operator):
         token_value = props.new_token_value
 
         # Add to collection
+        print("Creating collection for token")
+        # TODO: Check for existing first
         new_collection_item = token_map.add()
         new_collection_item.name = name
         new_collection_item.token_type = token_type
+        # new_collection_item.value = token_value.hsv
+        print("Value:")
+        print(token_value)
         new_collection_item.value = token_value
 
         return {"FINISHED"}
@@ -268,39 +273,49 @@ class GI_create_node_group(bpy.types.Operator):
         token_map = props.token_map
 
         # create a group
-        node_group = bpy.data.node_groups.new('testGroup', 'ShaderNodeTree')
+        # TODO: Check for existing first
+        node_group = bpy.data.node_groups.new('Design Tokens', 'ShaderNodeTree')
 
         # create group inputs
         group_inputs = node_group.nodes.new('NodeGroupInput')
         group_inputs.location = (-350,0)
-
-        # Create nodes
-        new_node = node_group.nodes.new('ShaderNodeRGB')
-        print("Created new RGB node")
-        print(dir(new_node))
-        print("RGB node color")
-        print(new_node.color)
-        print(new_node.outputs[0].default_value)
-        new_node.outputs[0].default_value[0] = 0.0
-        new_node.outputs[0].default_value[1] = 0.0
-        new_node.outputs[0].default_value[2] = 1.0
-        
-
-        # group_inputs.inputs.new('NodeSocketFloat','in_to_greater')
-        # group_inputs.inputs.new('NodeSocketFloat','in_to_less')
 
         # create group outputs
         group_outputs = node_group.nodes.new('NodeGroupOutput')
         print("Created node outputs")
         print(dir(group_outputs))
         group_outputs.location = (300,0)
-        output_name = "Color Output"
-        node_group.interface.new_socket(name=output_name, in_out='OUTPUT')
 
-        # Connect nodes
-        print("Connecting nodes")
-        # print(group_outputs.inputs.keys())
-        node_group.links.new(new_node.outputs[0], group_outputs.inputs[output_name])
+        node_offset_y = 0
+        for token in token_map:
+            print("token:")
+            print(token)
+
+            # Create an output
+            node_group.interface.new_socket(name=token.name, in_out='OUTPUT')
+
+            # Create nodes
+            print("Created new RGB node")
+            print(token.name)
+            print(token.token_type)
+
+            new_node = node_group.nodes.new('ShaderNodeRGB')
+            new_node.location = (100, node_offset_y)
+            new_node.name = token.name
+            print("RGB node color")
+            print(token.value)
+            print(token.value.r)
+            # new_node.outputs[0].default_value = token.value
+            new_node.outputs[0].default_value[0] = token.value.r
+            new_node.outputs[0].default_value[1] = token.value.g
+            new_node.outputs[0].default_value[2] = token.value.b
+
+            node_offset_y -= 200
+
+            # connect node to output
+            print("Connecting nodes")
+            node_group.links.new(new_node.outputs[0], group_outputs.inputs[token.name])
+
 
         return {"FINISHED"}
 
