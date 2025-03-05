@@ -1,4 +1,4 @@
-[Example of plugin](./docs/screenshots/example.png)
+![Example of plugin](./docs/screenshots/example.png)
 
 # Design Token Manager Blender plugin
 
