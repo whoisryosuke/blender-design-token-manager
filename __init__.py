@@ -83,7 +83,6 @@ class DesignTokenCollectionItem(PropertyGroup):
         name = "Type",
         description = "The type of token (color, typography, etc)",
         )
-    number: IntProperty(default=42)
 
 
 class GI_SceneProperties(PropertyGroup):
@@ -186,6 +185,9 @@ class GI_TokenManagerPanel(bpy.types.Panel):
             row.prop(token_props, "new_token_value")
             row = layout.row()
             row.operator("wm.create_new_token")
+
+        row = layout.row()
+        row.operator("wm.delete_token")
 
         row = layout.row()
         row.operator("wm.create_node_group")
@@ -341,6 +343,22 @@ class GI_create_node_group(bpy.types.Operator):
 
 
         return {"FINISHED"}
+    
+class GI_delete_token(bpy.types.Operator):
+    """Delete tokens"""
+    bl_idname = "wm.delete_token"
+    bl_label = "Delete token"
+    bl_description = "Deletes the selected token from the collection"
+
+    def execute(self, context: bpy.types.Context):
+        props = context.scene.token_props
+        token_map = props.token_map
+        active_token_id = props.active_token_id
+        
+        token_map.remove(active_token_id);
+
+
+        return {"FINISHED"}
 
 
 # Load/unload addon into Blender
@@ -349,6 +367,7 @@ classes = (
     GI_SceneProperties,
     GI_TokenManagerPanel,
     GI_toggle_token_create,
+    GI_delete_token,
     GI_create_new_token,
     GI_create_node_group,
 )
