@@ -87,16 +87,6 @@ class DesignTokenCollectionItem(PropertyGroup):
         )
     number = IntProperty(default=42)
 
-# class DesignToken: 
-#     name = None;
-#     token_type = None;
-#     value = None;
-
-#     def __init__(self, new_name, new_token_type, new_value):
-#         self.name = new_name;
-#         self.token_type = new_token_type;
-#         self.value = new_value;
-
 
 class GI_SceneProperties(PropertyGroup):
         
@@ -159,7 +149,7 @@ class GI_SceneProperties(PropertyGroup):
     active_token_id: IntProperty(min=-1,default=-1)
     
     # App State (not for user)
-    tokens = []
+    # tokens = []
 
 # UI Panel
 class GI_MIDIInputPanel(bpy.types.Panel):
@@ -257,17 +247,27 @@ class GI_create_new_token(bpy.types.Operator):
         name = props.new_token_name
         token_type = props.new_token_type
         token_value = props.new_token_value
-        
-        # Create the token
-        # new_token = DesignToken(name, token_type, token_value)
-        # Add token to app state
-        # tokens.append(new_token)
 
         # Add to collection
         new_collection_item = token_map.add()
         new_collection_item.name = name
         new_collection_item.token_type = token_type
         new_collection_item.value = token_value
+
+        return {"FINISHED"}
+    
+
+class GI_create_node_group(bpy.types.Operator):
+    """Create node group"""
+    bl_idname = "wm.create_node_group"
+    bl_label = "Create node group"
+    bl_description = "Adds a node with all design tokens"
+
+    def execute(self, context: bpy.types.Context):
+        props = context.scene.token_props
+        token_map = props.token_map
+
+        
 
         return {"FINISHED"}
 
