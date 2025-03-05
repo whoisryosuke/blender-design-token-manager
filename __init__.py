@@ -3,7 +3,7 @@ bl_info = {
     "description": "Manage design tokens in Blender and use them in materials",
     "author": "whoisryosuke",
     "version": (0, 0, 1),
-    "blender": (2, 80, 0), # not sure if this is right
+    "blender": (2, 80, 0),
     "location": "Properties > Output",
     # "warning": "Make sure to press 'Install dependencies' button in the plugin panel before using", # used for warning icon and text in addons panel
     "wiki_url": "https://github.com/whoisryosuke/blender-design-token-manager",
