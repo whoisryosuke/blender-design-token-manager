@@ -1,8 +1,8 @@
-[Example of plugin](https://github.com/user-attachments/assets/dc90301c-569a-493f-a6f9-35798aeb086b)
+[Example of plugin](./docs/screenshots/example.png)
 
 # Design Token Manager Blender plugin
 
-This is a free Blender addon to manage and use design tokens.
+Manage design tokens in Blender and use them in materials
 
 ## ⬇️ Installation
 
@@ -14,8 +14,6 @@ This is a free Blender addon to manage and use design tokens.
 1. You can confirm it's installed by searching for **"Design Token Manager"** and seeing if it's checked off
 
 ## 🔰 How to use
-
-![The plugin panel inside Blender](/docs/screenshots/plugin-panel.jpg)
 
 1. Navigate to a node editor window (like the Shading or Geometry Nodes)
 1. Open the side panel (aka "n-panel"). If it's not visible press the little arrow on the right side of panel). You can also use `CTRL + ]` if using industry compatible shortcuts.
