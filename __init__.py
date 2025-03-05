@@ -164,22 +164,19 @@ class GI_MIDIInputPanel(bpy.types.Panel):
 
         scene = context.scene
         token_props = scene.token_props
-        
-        # Legacy: Install deps using pip - we keep deps as git submodules now
-        # row = layout.row()
-        # row.operator("wm.install_midi")
 
         layout.label(text="Tokens")
-        row = layout.row()
 
-        row.template_list("UI_UL_list", "token_collection", token_props, "token_map", token_props, "active_token_id")
         row = layout.row()
+        row.template_list("UI_UL_list", "token_collection", token_props, "token_map", token_props, "active_token_id")
 
         # Create a new token panel
         if not token_props.new_token_mode:
+            row = layout.row()
             row.operator("wm.toggle_token_create")
 
         if token_props.new_token_mode:
+            row = layout.row()
             layout.label(text="Create New Token")
             row = layout.row()
             row.prop(token_props, "new_token_name")
@@ -189,8 +186,8 @@ class GI_MIDIInputPanel(bpy.types.Panel):
             row.prop(token_props, "new_token_value")
             row = layout.row()
             row.operator("wm.create_new_token")
-            row = layout.row()
 
+        row = layout.row()
         row.operator("wm.create_node_group")
 
         # row.prop(token_props, "midi_file")
@@ -272,7 +269,7 @@ class GI_create_node_group(bpy.types.Operator):
         props = context.scene.token_props
         token_map = props.token_map
 
-        # create a group
+        # Create shader node group
         # TODO: Check for existing first
         node_group = bpy.data.node_groups.new('Design Tokens', 'ShaderNodeTree')
 
@@ -300,6 +297,51 @@ class GI_create_node_group(bpy.types.Operator):
             print(token.token_type)
 
             new_node = node_group.nodes.new('ShaderNodeRGB')
+            new_node.location = (100, node_offset_y)
+            new_node.name = token.name
+            print("RGB node color")
+            print(token.value)
+            print(token.value.r)
+            # new_node.outputs[0].default_value = token.value
+            new_node.outputs[0].default_value[0] = token.value.r
+            new_node.outputs[0].default_value[1] = token.value.g
+            new_node.outputs[0].default_value[2] = token.value.b
+
+            node_offset_y -= 200
+
+            # connect node to output
+            print("Connecting nodes")
+            node_group.links.new(new_node.outputs[0], group_outputs.inputs[token.name])
+
+
+        # Create geometry node group
+        # TODO: Check for existing first
+        node_group = bpy.data.node_groups.new('Design Tokens (GN)', 'GeometryNodeTree')
+
+        # create group inputs
+        group_inputs = node_group.nodes.new('NodeGroupInput')
+        group_inputs.location = (-350,0)
+
+        # create group outputs
+        group_outputs = node_group.nodes.new('NodeGroupOutput')
+        print("Created node outputs")
+        print(dir(group_outputs))
+        group_outputs.location = (300,0)
+        
+        node_offset_y = 0
+        for token in token_map:
+            print("token:")
+            print(token)
+
+            # Create an output
+            node_group.interface.new_socket(name=token.name, in_out='OUTPUT')
+
+            # Create nodes
+            print("Created new RGB node")
+            print(token.name)
+            print(token.token_type)
+
+            new_node = node_group.nodes.new('FunctionNodeInputColor')
             new_node.location = (100, node_offset_y)
             new_node.name = token.name
             print("RGB node color")
