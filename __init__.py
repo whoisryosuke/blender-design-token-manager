@@ -15,9 +15,12 @@ bl_info = {
 import bpy
 from bpy.props import (StringProperty,
                        FloatProperty,
+                       IntProperty,
                        EnumProperty,
+                       FloatVectorProperty,
                        BoolProperty,
                        PointerProperty,
+                       CollectionProperty,
                        )
 from bpy.types import (
                        PropertyGroup,
@@ -49,61 +52,75 @@ def handle_midi_file_path(midi_file_path):
 #    Scene Properties
 # ------------------------------------------------------------------------
 
+# Hydrate the enum with a dict constant
+def new_token_type_items(scene, context):
 
-def selected_track_enum_callback(scene, context):
-    global midi_file_loaded, selected_tracks_raw
+    items = []
 
-    token_props = context.scene.token_props
-    midi_file_path = token_props.midi_file
+    keys = TOKEN_TYPES.keys()
 
-    # Check input and ensure it's actually MIDI
-    is_midi_file = ".mid" in midi_file_path
-    # TODO: Return error to user somehow??
-    if not is_midi_file:
-        return []
-        
-
-    # Have we already scanned this file? Check the "cache"
-    if midi_file_loaded == midi_file_path:
-        return selected_tracks_raw
-
-    # Import the MIDI file
-    from mido import MidiFile
-
-    fixed_path = handle_midi_file_path(midi_file_path)
-    mid = MidiFile(fixed_path)
-
-    # Setup time for track
-    selected_tracks_raw = []
-    time = 0
-    # current_frame = context.scene.frame_current
-    scene_start_frame = context.scene.frame_start
-    scene_end_frame = context.scene.frame_end
-    total_frames = scene_end_frame - scene_start_frame
+    for key in keys:
+        items.append((key, TOKEN_TYPES[key], ""))
     
-
-    # Determine active track
-    for i, track in enumerate(mid.tracks):
-        # Loop over each note in the track
-        for msg in track:
-            if not msg.is_meta:
-                # add to list of tracks
-                selected_tracks_raw.insert(len(selected_tracks_raw), ("{}".format(i), "Track {} {}".format(i, track.name), ""))
-                break;
-
-    # print(selected_tracks_raw)
-
-    # Mark this MIDI file as "cached"
-    midi_file_loaded = midi_file_path
-    
-    return selected_tracks_raw
+    return items
 
 # UI properties
-ANIM_MODE_KEYFRAMES = "KEYFRAMES"
-ANIM_MODE_ACTIONS = "ACTIONS"
+TOKEN_TYPES = {
+    "COLOR": "Color",
+    "TYPOGRAPHY": "Color",
+}
+
+class DesignTokenCollectionItem(PropertyGroup):
+    name = StringProperty(
+        name="Name",
+        description="The name of the token you want to create",
+    )
+    value = FloatVectorProperty(
+        name="Value",
+        description="The value of the token you want to create",
+        subtype='COLOR'
+    )
+    token_type = EnumProperty(
+        name = "Type",
+        description = "The type of token (color, typography, etc)",
+        items=new_token_type_items
+        )
+    number = IntProperty(default=42)
+
+# class DesignToken: 
+#     name = None;
+#     token_type = None;
+#     value = None;
+
+#     def __init__(self, new_name, new_token_type, new_value):
+#         self.name = new_name;
+#         self.token_type = new_token_type;
+#         self.value = new_value;
+
 
 class GI_SceneProperties(PropertyGroup):
         
+    # New token
+    new_token_mode: BoolProperty(
+        name = "New Token Mode",
+        description = "Lets user add new token via panel",
+        default = False,
+        )
+    new_token_name: StringProperty(
+        name="Name",
+        description="The name of the token you want to create",
+    )
+    new_token_value: FloatVectorProperty(
+        name="Value",
+        description="The value of the token you want to create",
+        subtype='COLOR'
+    )
+    new_token_type: EnumProperty(
+        name = "Type",
+        description = "The type of token (color, typography, etc)",
+        items=new_token_type_items
+        )
+    
     # midi_file: StringProperty(
     #     name="MIDI File",
     #     description="Music file you want to import",
@@ -136,9 +153,11 @@ class GI_SceneProperties(PropertyGroup):
     #     type=bpy.types.Object,
     #     )
     
+    token_map: CollectionProperty(type=DesignTokenCollectionItem)
+    active_token_id: IntProperty(min=-1,default=-1)
     
     # App State (not for user)
-    initial_state = {}
+    tokens = []
 
 # UI Panel
 class GI_MIDIInputPanel(bpy.types.Panel):
@@ -160,8 +179,27 @@ class GI_MIDIInputPanel(bpy.types.Panel):
         # row = layout.row()
         # row.operator("wm.install_midi")
 
-        layout.label(text="Tokens", icon="OUTLINER_OB_SPEAKER")
+        layout.label(text="Tokens")
         row = layout.row()
+
+        row.template_list("UI_UL_list", "token_collection", token_props, "token_map", token_props, "active_token_id")
+        row = layout.row()
+
+        # Create a new token panel
+        if not token_props.new_token_mode:
+            row.operator("wm.toggle_token_create")
+
+        if token_props.new_token_mode:
+            layout.label(text="Create New Token")
+            row = layout.row()
+            row.prop(token_props, "new_token_name")
+            row = layout.row()
+            row.prop(token_props, "new_token_type")
+            row = layout.row()
+            row.prop(token_props, "new_token_value")
+            row = layout.row()
+            row.operator("wm.create_new_token")
+
         # row.prop(token_props, "midi_file")
 
         # layout.separator(factor=1.5)
@@ -189,12 +227,56 @@ class GI_MIDIInputPanel(bpy.types.Panel):
 
 #         return {"FINISHED"}
 
+class GI_toggle_token_create(bpy.types.Operator):
+    """Toggle new token"""
+    bl_idname = "wm.toggle_token_create"
+    bl_label = "Toggle Token Creation"
+    bl_description = "Reveal the 'New Token' panel"
+
+    def execute(self, context: bpy.types.Context):
+        token_props = context.scene.token_props
+        
+        token_props.new_token_mode = not token_props.new_token_mode;
+
+        return {"FINISHED"}
+    
+class GI_create_new_token(bpy.types.Operator):
+    """Toggle new token"""
+    bl_idname = "wm.create_new_token"
+    bl_label = "Create token"
+    bl_description = "Saves token to Blender file"
+
+    def execute(self, context: bpy.types.Context):
+        props = context.scene.token_props
+        tokens = props.tokens
+        token_map = props.token_map
+
+        # New token data
+        name = props.new_token_name
+        token_type = props.new_token_type
+        token_value = props.new_token_value
+        
+        # Create the token
+        # new_token = DesignToken(name, token_type, token_value)
+        # Add token to app state
+        # tokens.append(new_token)
+
+        # Add to collection
+        new_collection_item = token_map.add()
+        new_collection_item.name = name
+        new_collection_item.token_type = token_type
+        new_collection_item.value = token_value
+
+        return {"FINISHED"}
+
 
 # Load/unload addon into Blender
 classes = (
+    DesignTokenCollectionItem,
     GI_SceneProperties,
     GI_MIDIInputPanel,
-    # GI_assign_keys,
+    GI_toggle_token_create,
+    GI_create_new_token,
 )
 
 def register():
