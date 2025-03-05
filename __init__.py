@@ -150,7 +150,7 @@ class GI_SceneProperties(PropertyGroup):
     # tokens = []
 
 # UI Panel
-class GI_MIDIInputPanel(bpy.types.Panel):
+class GI_TokenManagerPanel(bpy.types.Panel):
     """Creates a Panel in the scene context of the properties editor"""
     bl_category = "Design"
     bl_label = "Design Token Manager"
@@ -347,7 +347,7 @@ class GI_create_node_group(bpy.types.Operator):
 classes = (
     DesignTokenCollectionItem,
     GI_SceneProperties,
-    GI_MIDIInputPanel,
+    GI_TokenManagerPanel,
     GI_toggle_token_create,
     GI_create_new_token,
     GI_create_node_group,
