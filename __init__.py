@@ -25,9 +25,6 @@ from bpy.props import (StringProperty,
 from bpy.types import (
                        PropertyGroup,
                        )
-import math
-import subprocess
-import sys
 import os
 
 # Constants
@@ -191,6 +188,9 @@ class GI_MIDIInputPanel(bpy.types.Panel):
             row.prop(token_props, "new_token_value")
             row = layout.row()
             row.operator("wm.create_new_token")
+            row = layout.row()
+
+        row.operator("wm.create_node_group")
 
         # row.prop(token_props, "midi_file")
 
@@ -267,7 +267,40 @@ class GI_create_node_group(bpy.types.Operator):
         props = context.scene.token_props
         token_map = props.token_map
 
+        # create a group
+        node_group = bpy.data.node_groups.new('testGroup', 'ShaderNodeTree')
+
+        # create group inputs
+        group_inputs = node_group.nodes.new('NodeGroupInput')
+        group_inputs.location = (-350,0)
+
+        # Create nodes
+        new_node = node_group.nodes.new('ShaderNodeRGB')
+        print("Created new RGB node")
+        print(dir(new_node))
+        print("RGB node color")
+        print(new_node.color)
+        print(new_node.outputs[0].default_value)
+        new_node.outputs[0].default_value[0] = 0.0
+        new_node.outputs[0].default_value[1] = 0.0
+        new_node.outputs[0].default_value[2] = 1.0
         
+
+        # group_inputs.inputs.new('NodeSocketFloat','in_to_greater')
+        # group_inputs.inputs.new('NodeSocketFloat','in_to_less')
+
+        # create group outputs
+        group_outputs = node_group.nodes.new('NodeGroupOutput')
+        print("Created node outputs")
+        print(dir(group_outputs))
+        group_outputs.location = (300,0)
+        output_name = "Color Output"
+        node_group.interface.new_socket(name=output_name, in_out='OUTPUT')
+
+        # Connect nodes
+        print("Connecting nodes")
+        # print(group_outputs.inputs.keys())
+        node_group.links.new(new_node.outputs[0], group_outputs.inputs[output_name])
 
         return {"FINISHED"}
 
@@ -279,6 +312,7 @@ classes = (
     GI_MIDIInputPanel,
     GI_toggle_token_create,
     GI_create_new_token,
+    GI_create_node_group,
 )
 
 def register():
