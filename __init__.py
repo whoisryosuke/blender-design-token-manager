@@ -257,106 +257,87 @@ class GI_create_new_token(bpy.types.Operator):
         new_collection_item.value = token_value
 
         return {"FINISHED"}
-    
+
+COLOR_NODE_TYPES = {
+    'SHADER': 'ShaderNodeRGB',
+    'GN': 'FunctionNodeInputColor'
+}    
+
+def create_node_group(node_group_type, name):
+    # Create node group
+    # TODO: Check for existing first
+    node_group = bpy.data.node_groups.new(name, node_group_type)
+
+    # create group inputs
+    group_inputs = node_group.nodes.new('NodeGroupInput')
+    group_inputs.location = (-350,0)
+
+    # create group outputs
+    group_outputs = node_group.nodes.new('NodeGroupOutput')
+    print("Created node outputs")
+    print(dir(group_outputs))
+    group_outputs.location = (300,0)
+
+    return (node_group, group_inputs, group_outputs)
+
+def generate_color_tokens(node_type, token_map, node_group, group_outputs):
+    node_offset_y = 0
+    for token in token_map:
+        # Create an output (color in this case)
+        node_group.interface.new_socket(name=token.name, socket_type="NodeSocketColor", in_out='OUTPUT')
+
+        # Create nodes
+
+        # Debug
+        # print("token:")
+        # print(token)
+        # print("Created new RGB node")
+        # print(token.name)
+        # print(token.token_type)
+        # print("RGB node color")
+        # print(token.value)
+        # print(token.value.r)
+
+        # Create Color/RGB node
+        # Shaders and geo nodes use different nodes for color (see `COLOR_NODE_TYPES`)
+        new_node = node_group.nodes.new(COLOR_NODE_TYPES[node_type])
+        new_node.location = (100, node_offset_y)
+        new_node.name = token.name
+
+        if(node_type == "SHADER"):
+            new_node.outputs[0].default_value[0] = token.value.r
+            new_node.outputs[0].default_value[1] = token.value.g
+            new_node.outputs[0].default_value[2] = token.value.b
+        if(node_type == "GN"):
+            new_node.value[0] = token.value.r
+            new_node.value[1] = token.value.g
+            new_node.value[2] = token.value.b
+
+        # connect node to output
+        node_group.links.new(new_node.outputs[0], group_outputs.inputs[token.name])
+
+        # Push next node down so they don't overlap
+        node_offset_y -= 200
+
+
 
 class GI_create_node_group(bpy.types.Operator):
-    """Create node group"""
+    """Create node groups"""
     bl_idname = "wm.create_node_group"
     bl_label = "Create node group"
-    bl_description = "Adds a node with all design tokens"
+    bl_description = "Adds a node group to shaders and geometry nodes with all design tokens"
 
     def execute(self, context: bpy.types.Context):
         props = context.scene.token_props
         token_map = props.token_map
 
         # Create shader node group
-        # TODO: Check for existing first
-        node_group = bpy.data.node_groups.new('Design Tokens', 'ShaderNodeTree')
-
-        # create group inputs
-        group_inputs = node_group.nodes.new('NodeGroupInput')
-        group_inputs.location = (-350,0)
-
-        # create group outputs
-        group_outputs = node_group.nodes.new('NodeGroupOutput')
-        print("Created node outputs")
-        print(dir(group_outputs))
-        group_outputs.location = (300,0)
-
-        node_offset_y = 0
-        for token in token_map:
-            print("token:")
-            print(token)
-
-            # Create an output
-            node_group.interface.new_socket(name=token.name, in_out='OUTPUT')
-
-            # Create nodes
-            print("Created new RGB node")
-            print(token.name)
-            print(token.token_type)
-
-            new_node = node_group.nodes.new('ShaderNodeRGB')
-            new_node.location = (100, node_offset_y)
-            new_node.name = token.name
-            print("RGB node color")
-            print(token.value)
-            print(token.value.r)
-            # new_node.outputs[0].default_value = token.value
-            new_node.outputs[0].default_value[0] = token.value.r
-            new_node.outputs[0].default_value[1] = token.value.g
-            new_node.outputs[0].default_value[2] = token.value.b
-
-            node_offset_y -= 200
-
-            # connect node to output
-            print("Connecting nodes")
-            node_group.links.new(new_node.outputs[0], group_outputs.inputs[token.name])
-
+        (node_group, _, group_outputs) = create_node_group('ShaderNodeTree', 'Design Tokens (Shader)')
+        generate_color_tokens('SHADER', token_map, node_group, group_outputs)
 
         # Create geometry node group
-        # TODO: Check for existing first
-        node_group = bpy.data.node_groups.new('Design Tokens (GN)', 'GeometryNodeTree')
-
-        # create group inputs
-        group_inputs = node_group.nodes.new('NodeGroupInput')
-        group_inputs.location = (-350,0)
-
-        # create group outputs
-        group_outputs = node_group.nodes.new('NodeGroupOutput')
-        print("Created node outputs")
-        print(dir(group_outputs))
-        group_outputs.location = (300,0)
-        
-        node_offset_y = 0
-        for token in token_map:
-            print("token:")
-            print(token)
-
-            # Create an output
-            node_group.interface.new_socket(name=token.name, in_out='OUTPUT')
-
-            # Create nodes
-            print("Created new RGB node")
-            print(token.name)
-            print(token.token_type)
-
-            new_node = node_group.nodes.new('FunctionNodeInputColor')
-            new_node.location = (100, node_offset_y)
-            new_node.name = token.name
-            print("RGB node color")
-            print(token.value)
-            print(token.value.r)
-            # new_node.outputs[0].default_value = token.value
-            new_node.outputs[0].default_value[0] = token.value.r
-            new_node.outputs[0].default_value[1] = token.value.g
-            new_node.outputs[0].default_value[2] = token.value.b
-
-            node_offset_y -= 200
-
-            # connect node to output
-            print("Connecting nodes")
-            node_group.links.new(new_node.outputs[0], group_outputs.inputs[token.name])
+        (node_group, _, group_outputs) = create_node_group('GeometryNodeTree', 'Design Tokens (GN)')
+        generate_color_tokens('GN', token_map, node_group, group_outputs)
 
 
         return {"FINISHED"}
