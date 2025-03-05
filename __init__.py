@@ -113,7 +113,9 @@ class GI_SceneProperties(PropertyGroup):
     new_token_value: FloatVectorProperty(
         name="Value",
         description="The value of the token you want to create",
-        subtype='COLOR'
+        subtype='COLOR',
+        min=0.0,
+        max=1.0,
     )
     new_token_type: EnumProperty(
         name = "Type",
