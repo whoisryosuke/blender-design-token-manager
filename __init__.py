@@ -404,13 +404,19 @@ class GI_import_tokens(bpy.types.Operator):
         with open(token_file_path, 'r') as file:
             imported_tokens = json.load(file)
             
+        # We check for a top-level `colors` property that contains all color tokens
         if "colors" in imported_tokens:
             color_tokens = imported_tokens["colors"]
             color_keys = color_tokens.keys()
+
+            # Loop over the colors
             for color_key in color_keys:
                 print("Importing color...")
                 print(color_key) 
                 print(color_tokens[color_key]['value']) 
+
+                # Assuming they provide hex code, convert to RGB
+                # TODO: Check for object with RGB values
                 rgb_result = hex_to_rgb(color_tokens[color_key]['value'])
                 if rgb_result is not None:
                     (r,g,b) = rgb_result
@@ -426,11 +432,12 @@ class GI_import_tokens(bpy.types.Operator):
                     new_collection_item.value.g = g
                     new_collection_item.value.b = b
 
-        for token in token_map:
-            print("token value")
-            print(token.name)
-            print(token.value)
-            print(dir(token.value))
+        # Debug - check if it was added and formatting
+        # for token in token_map:
+        #     print("token value")
+        #     print(token.name)
+        #     print(token.value)
+        #     print(dir(token.value))
 
         return {"FINISHED"}
 
