@@ -279,24 +279,36 @@ NODE_GROUP_TYPES = {
 }    
 
 def get_node_group(node_group_type, name):
+    """Gets existing node group (and resets it) - or creates new one
+
+    Args:
+        node_group_type: See NODE_GROUP_TYPES
+        name: Node group name
+
+    Returns:
+        A node group
+    """
     for group in bpy.data.node_groups:
         # print("Group")
         # print(group.name)
         # print(group.type)
         if group.name == name and group.type == NODE_GROUP_TYPES[node_group_type]:
-            print("Removing node group...")
-            # We delete the group if it exists and just remake it
-            bpy.data.node_groups.remove(group)
-            # return group
+            # Remove all nodes
+            for node in group.nodes:
+                group.nodes.remove(node);
+            
+            # Remove all sockets from output
+            for node in group.interface.items_tree:
+                group.interface.remove(node);
+
+            return group
     
+    # No group found? Make a new one
     return bpy.data.node_groups.new(name, node_group_type)
 
 
 def create_node_group(node_group_type, name):
     # Create node group
-    # TODO: Check for existing first
-
-
     node_group = get_node_group(node_group_type, name)
 
     # create group inputs
