@@ -273,11 +273,31 @@ COLOR_NODE_TYPES = {
     'SHADER': 'ShaderNodeRGB',
     'GN': 'FunctionNodeInputColor'
 }    
+NODE_GROUP_TYPES = {
+    'ShaderNodeTree': 'SHADER',
+    'GeometryNodeTree': 'GEOMETRY'
+}    
+
+def get_node_group(node_group_type, name):
+    for group in bpy.data.node_groups:
+        # print("Group")
+        # print(group.name)
+        # print(group.type)
+        if group.name == name and group.type == NODE_GROUP_TYPES[node_group_type]:
+            print("Removing node group...")
+            # We delete the group if it exists and just remake it
+            bpy.data.node_groups.remove(group)
+            # return group
+    
+    return bpy.data.node_groups.new(name, node_group_type)
+
 
 def create_node_group(node_group_type, name):
     # Create node group
     # TODO: Check for existing first
-    node_group = bpy.data.node_groups.new(name, node_group_type)
+
+
+    node_group = get_node_group(node_group_type, name)
 
     # create group inputs
     group_inputs = node_group.nodes.new('NodeGroupInput')
