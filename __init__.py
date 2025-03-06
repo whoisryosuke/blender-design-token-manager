@@ -32,17 +32,17 @@ import os
 
 # Global state
 
-def handle_midi_file_path(midi_file_path):
-    fixed_midi_file_path = midi_file_path
+def handle_file_path(file_path):
+    fixed_file_path = file_path
 
     # Relative file path? Lets fix that
-    if "//" in midi_file_path:
+    if "//" in file_path:
         filepath = bpy.data.filepath
         directory = os.path.dirname(filepath)
-        midi_path_base = midi_file_path.replace("//", "")
-        fixed_midi_file_path = os.path.join( directory , midi_path_base)
+        path_base = file_path.replace("//", "")
+        fixed_file_path = os.path.join( directory , path_base)
         
-    return fixed_midi_file_path
+    return fixed_file_path
     
 
 # ------------------------------------------------------------------------
@@ -110,11 +110,11 @@ class GI_SceneProperties(PropertyGroup):
         items=new_token_type_items
         )
     
-    # midi_file: StringProperty(
-    #     name="MIDI File",
-    #     description="Music file you want to import",
-    #     subtype = 'FILE_PATH'
-    #     )
+    token_file: StringProperty(
+        name="Token JSON",
+        description="Path to a JSON file with design tokens",
+        subtype = 'FILE_PATH'
+        )
     # action_advanced_mode: BoolProperty(
     #     name = "Advanced Mode",
     #     description = "Lets you add an action per note (instead of 1 for all)",
@@ -170,9 +170,8 @@ class GI_TokenManagerPanel(bpy.types.Panel):
         row.template_list("UI_UL_list", "token_collection", token_props, "token_map", token_props, "active_token_id")
 
         # Create a new token panel
-        if not token_props.new_token_mode:
-            row = layout.row()
-            row.operator("wm.toggle_token_create")
+        row = layout.row()
+        row.operator("wm.toggle_token_create")
 
         if token_props.new_token_mode:
             row = layout.row()
@@ -185,6 +184,7 @@ class GI_TokenManagerPanel(bpy.types.Panel):
             row.prop(token_props, "new_token_value")
             row = layout.row()
             row.operator("wm.create_new_token")
+            layout.separator(factor=1.5)
 
         row = layout.row()
         row.operator("wm.delete_token")
@@ -192,7 +192,10 @@ class GI_TokenManagerPanel(bpy.types.Panel):
         row = layout.row()
         row.operator("wm.create_node_group")
 
-        # row.prop(token_props, "midi_file")
+        row = layout.row()
+        row.prop(token_props, "token_file")
+        row = layout.row()
+        row.operator("wm.import_tokens")
 
         # layout.separator(factor=1.5)
         # layout.label(text="Animation Settings", icon="IPO_ELASTIC")
@@ -257,6 +260,9 @@ class GI_create_new_token(bpy.types.Operator):
         print("Value:")
         print(token_value)
         new_collection_item.value = token_value
+        
+        # Clear input fields
+        props.new_token_name = ""
 
         return {"FINISHED"}
 
@@ -359,6 +365,74 @@ class GI_delete_token(bpy.types.Operator):
 
 
         return {"FINISHED"}
+    
+def hex_to_rgb(hex_color):
+  """Converts a hex color code to an RGB tuple.
+
+  Args:
+    hex_color: The hex color code as a string (e.g., "#RRGGBB" or "RRGGBB").
+
+  Returns:
+    A tuple containing the RGB values (integers between 0 and 255), 
+    or None if the input is invalid.
+  """
+  hex_color = hex_color.lstrip("#")  # Remove the '#' prefix if it exists
+  if len(hex_color) != 6:
+    return None  # Invalid hex code length
+  try:
+    r = int(hex_color[0:2], 16)
+    g = int(hex_color[2:4], 16)
+    b = int(hex_color[4:6], 16)
+    return (r, g, b)
+  except ValueError:
+    return None  # Invalid hex characters
+    
+class GI_import_tokens(bpy.types.Operator):
+    """Delete tokens"""
+    bl_idname = "wm.import_tokens"
+    bl_label = "Import tokens"
+    bl_description = "Imports tokens from the provided JSON file"
+
+    def execute(self, context: bpy.types.Context):
+        props = context.scene.token_props
+        token_map = props.token_map
+        token_file = props.token_file
+        token_file_path = handle_file_path(token_file)
+
+
+        import json
+        with open(token_file_path, 'r') as file:
+            imported_tokens = json.load(file)
+            
+        if "colors" in imported_tokens:
+            color_tokens = imported_tokens["colors"]
+            color_keys = color_tokens.keys()
+            for color_key in color_keys:
+                print("Importing color...")
+                print(color_key) 
+                print(color_tokens[color_key]['value']) 
+                rgb_result = hex_to_rgb(color_tokens[color_key]['value'])
+                if rgb_result is not None:
+                    (r,g,b) = rgb_result
+                    print("Got RGB values")
+                    print((r, g, b))
+                    # Add to collection
+                    print("Creating collection for token")
+                    # TODO: Check for existing first
+                    new_collection_item = token_map.add()
+                    new_collection_item.name = color_key
+                    new_collection_item.token_type = "COLOR"
+                    new_collection_item.value.r = r
+                    new_collection_item.value.g = g
+                    new_collection_item.value.b = b
+
+        for token in token_map:
+            print("token value")
+            print(token.name)
+            print(token.value)
+            print(dir(token.value))
+
+        return {"FINISHED"}
 
 
 # Load/unload addon into Blender
@@ -370,6 +444,7 @@ classes = (
     GI_delete_token,
     GI_create_new_token,
     GI_create_node_group,
+    GI_import_tokens,
 )
 
 def register():
