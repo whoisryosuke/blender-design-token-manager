@@ -111,8 +111,8 @@ class GI_SceneProperties(PropertyGroup):
         )
     
     token_file: StringProperty(
-        name="Token JSON",
-        description="Path to a JSON file with design tokens",
+        name="JSON",
+        description="Path to a JSON file with design tokens (see README for correct formatting)",
         subtype = 'FILE_PATH'
         )
     # action_advanced_mode: BoolProperty(
@@ -172,6 +172,7 @@ class GI_TokenManagerPanel(bpy.types.Panel):
         # Create a new token panel
         row = layout.row()
         row.operator("wm.toggle_token_create")
+        layout.separator(factor=1.5)
 
         if token_props.new_token_mode:
             row = layout.row()
@@ -192,6 +193,8 @@ class GI_TokenManagerPanel(bpy.types.Panel):
         row = layout.row()
         row.operator("wm.create_node_group")
 
+        layout.separator(factor=1.5)
+        layout.label(text="Import Tokens")
         row = layout.row()
         row.prop(token_props, "token_file")
         row = layout.row()
@@ -390,7 +393,7 @@ def hex_to_rgb(hex_color):
 class GI_import_tokens(bpy.types.Operator):
     """Delete tokens"""
     bl_idname = "wm.import_tokens"
-    bl_label = "Import tokens"
+    bl_label = "Import JSON"
     bl_description = "Imports tokens from the provided JSON file"
 
     def execute(self, context: bpy.types.Context):
